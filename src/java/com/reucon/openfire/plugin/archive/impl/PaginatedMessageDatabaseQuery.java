@@ -103,6 +103,7 @@ public class PaginatedMessageDatabaseQuery
         try {
             connection = DbConnectionManager.getConnection();
             final String query = buildQueryForMessages(after, before, maxResults, isPagingBackwards);
+            Log.debug("getPage query: {}", query);
             pstmt = connection.prepareStatement( query );
             pstmt.setLong( 1, dateToMillis( startDate ) );
             pstmt.setLong( 2, dateToMillis( endDate ) );

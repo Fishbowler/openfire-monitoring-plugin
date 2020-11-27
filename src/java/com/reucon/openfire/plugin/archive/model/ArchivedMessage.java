@@ -129,7 +129,8 @@ public class ArchivedMessage {
         sb.append("ArchivedMessage[id=").append(id).append(",");
         sb.append("stableId=").append(stableId).append(",");
         sb.append("time=").append(time).append(",");
-        sb.append("direction=").append(direction).append("]");
+        sb.append("direction=").append(direction).append(",");
+        sb.append("stanza=").append(stanza).append("]");
 
         return sb.toString();
     }

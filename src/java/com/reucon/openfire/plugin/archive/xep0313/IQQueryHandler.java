@@ -263,6 +263,7 @@ abstract class IQQueryHandler extends AbstractIQHandler implements
                 Log.debug("Retrieved {} messages from archive.", archivedMessages.size());
 
                 for(ArchivedMessage archivedMessage : archivedMessages) {
+                    Log.debug("About to send message: {}", archivedMessage);
                     sendMessageResult(packet.getFrom(), finalQueryRequest, archivedMessage);
                 }
 
@@ -510,7 +511,10 @@ abstract class IQQueryHandler extends AbstractIQHandler implements
      */
     private void sendMessageResult(JID from, QueryRequest queryRequest, ArchivedMessage archivedMessage) {
         String stanzaText = archivedMessage.getStanza();
+        Log.debug("stanzaText: {}", stanzaText);
+        Log.debug("stanzaText length: {}", stanzaText.length());
         if(stanzaText == null || stanzaText.equals("")) {
+            Log.debug( "Reconstructing a stanza (only a body was stored)" );
             // Try creating a fake one from the body.
             if (archivedMessage.getBody() != null && !archivedMessage.getBody().equals("")) {
                 final JID to;
@@ -527,6 +531,10 @@ abstract class IQQueryHandler extends AbstractIQHandler implements
                 final boolean isMuc = (to != null &&XMPPServer.getInstance().getMultiUserChatManager().getMultiUserChatService( to ) != null)
                     || (from != null && XMPPServer.getInstance().getMultiUserChatManager().getMultiUserChatService( from ) != null);
 
+                Log.debug("MUCService to: {}", XMPPServer.getInstance().getMultiUserChatManager().getMultiUserChatService( to ));
+                Log.debug("MUCService from: {}", XMPPServer.getInstance().getMultiUserChatManager().getMultiUserChatService( from ));
+                Log.debug("isMuc: {}}, to: {}, frm: {}", isMuc, to, frm);
+
                 stanzaText = String.format("<message from=\"%s\" to=\"%s\" type=\"%s\"><body>%s</body></message>", frm, to, isMuc ? "groupchat" : "chat", archivedMessage.getBody());
                 Log.trace( "Reconstructed stanza (only a body was stored): {}", stanzaText );
             } else {
@@ -535,12 +543,17 @@ abstract class IQQueryHandler extends AbstractIQHandler implements
             }
         }
 
+        
+
         final boolean isMuc = XMPPServer.getInstance().getMultiUserChatManager().getMultiUserChatService( queryRequest.getArchive() ) != null;
+        Log.debug("isMuc: {}", isMuc);
+        Log.debug("queryRequest.getArchive(): {}", queryRequest.getArchive());
         Message messagePacket = new Message();
         messagePacket.setTo(from);
         if (isMuc)
         {
             messagePacket.setFrom( queryRequest.getArchive().asBareJID() );
+            Log.debug("From set: {}", queryRequest.getArchive().asBareJID());
         }
         Forwarded fwd;
 
