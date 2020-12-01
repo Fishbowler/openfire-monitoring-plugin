@@ -63,6 +63,7 @@ public class SendConversationEventsTask implements ClusterTask<Void> {
         ConversationManager conversationManager = (ConversationManager)plugin.getModule(ConversationManager.class);
         for (ConversationEvent event : events) {
             try {
+                Log.debug("Stanza in SendConversationEventsTask: {}", event.stanza);
                 event.run(conversationManager);
             } catch (Exception e) {
                 Log.error("Error while processing chat archiving event", e);

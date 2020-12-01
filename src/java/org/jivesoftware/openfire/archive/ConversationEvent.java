@@ -19,6 +19,8 @@ package org.jivesoftware.openfire.archive;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.muc.MUCRoom;
 import org.jivesoftware.util.cache.ExternalizableUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xmpp.packet.JID;
 
 import java.io.Externalizable;
@@ -34,6 +36,9 @@ import java.util.Date;
  * @author Gaston Dombiak
  */
 public class ConversationEvent implements Externalizable {
+
+    private static final Logger Log = LoggerFactory.getLogger(ConversationEvent.class);
+
     private Type type;
     private Date date;
     private String body;
@@ -53,6 +58,7 @@ public class ConversationEvent implements Externalizable {
     }
 
     public void run(ConversationManager conversationManager) {
+        Log.debug("Processing Conversation event of type {}", type.toString());
         if (Type.chatMessageReceived == type) {
             conversationManager.processMessage(sender, receiver, body, "", date);
         }
