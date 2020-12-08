@@ -510,7 +510,7 @@ abstract class IQQueryHandler extends AbstractIQHandler implements
      * @return
      */
     private void sendMessageResult(JID from, QueryRequest queryRequest, ArchivedMessage archivedMessage) {
-        String stanzaText = archivedMessage.getStanza();
+        String stanzaText = (archivedMessage.getStanza() != null ? archivedMessage.getStanza().toXML() : "");
         Log.debug("stanzaText: {}", stanzaText);
         Log.debug("stanzaText length: {}", stanzaText.length());
         if(stanzaText == null || stanzaText.equals("")) {

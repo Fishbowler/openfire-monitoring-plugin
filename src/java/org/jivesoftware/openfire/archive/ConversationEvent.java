@@ -42,7 +42,7 @@ public class ConversationEvent implements Externalizable {
     private Type type;
     private Date date;
     private String body;
-    private String stanza;
+    public String stanza;
 
     private JID sender;
     private JID receiver;
