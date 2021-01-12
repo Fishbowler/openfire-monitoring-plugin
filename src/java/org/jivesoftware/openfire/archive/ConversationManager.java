@@ -21,7 +21,6 @@ import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 import org.jivesoftware.database.DbConnectionManager;
-import org.jivesoftware.database.SequenceManager;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.XMPPServerInfo;
 import org.jivesoftware.openfire.archive.cluster.GetConversationCountTask;
@@ -51,6 +50,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Stream;
@@ -81,12 +81,12 @@ public class ConversationManager implements ComponentEventListener{
     private static final String DELETE_CONVERSATION_2 = "DELETE FROM ofConParticipant WHERE conversationID=?";
     private static final String DELETE_CONVERSATION_3 = "DELETE FROM ofConversation WHERE conversationID=?";
 
-    private static final int DEFAULT_IDLE_TIME = 10;
-    private static final int DEFAULT_MAX_TIME = 60;
-    public static final int DEFAULT_MAX_TIME_DEBUG = 30;
+    private static final Duration DEFAULT_IDLE_TIME = Duration.ofMinutes(10);
+    private static final Duration DEFAULT_MAX_TIME = Duration.ofMinutes(60);
+    public static final Duration DEFAULT_MAX_TIME_DEBUG = Duration.ofMinutes(30);
 
-    public static final int DEFAULT_MAX_RETRIEVABLE = 0;
-    private static final int DEFAULT_MAX_AGE = 0;
+    public static final Duration DEFAULT_MAX_RETRIEVABLE = Duration.ofDays(0);
+    private static final Duration DEFAULT_MAX_AGE = Duration.ofDays(0);
 
     public static final String CONVERSATIONS_KEY = "conversations";
 
@@ -108,10 +108,10 @@ public class ConversationManager implements ComponentEventListener{
      * List of room names to archive. When list is empty then all rooms are archived (if roomArchivingEnabled is enabled).
      */
     private Collection<String> roomsArchived;
-    private long idleTime;
-    private long maxTime;
-    private long maxAge;
-    private long maxRetrievable;
+    private Duration idleTime;
+    private Duration maxTime;
+    private Duration maxAge;
+    private Duration maxRetrievable;
     private PropertyEventListener propertyListener;
 
     private TimerTask cleanupTask;
@@ -164,30 +164,34 @@ public class ConversationManager implements ComponentEventListener{
         .setPlugin("monitoring")
         .build();
 
-    public static SystemProperty<Integer> IDLE_TIME = SystemProperty.Builder.ofType(Integer.class)
+    public static SystemProperty<Duration> IDLE_TIME = SystemProperty.Builder.ofType(Duration.class)
         .setKey("conversation.idleTime")
         .setDefaultValue(DEFAULT_IDLE_TIME)
+        .setChronoUnit(ChronoUnit.MINUTES)
         .setDynamic(true)
         .setPlugin("monitoring")
         .build();
 
-    public static SystemProperty<Integer> MAX_TIME = SystemProperty.Builder.ofType(Integer.class)
+    public static SystemProperty<Duration> MAX_TIME = SystemProperty.Builder.ofType(Duration.class)
         .setKey("conversation.maxTime")
         .setDefaultValue(DEFAULT_MAX_TIME)
+        .setChronoUnit(ChronoUnit.MINUTES)
         .setDynamic(true)
         .setPlugin("monitoring")
         .build();
     
-    public static SystemProperty<Integer> MAX_AGE = SystemProperty.Builder.ofType(Integer.class)
+    public static SystemProperty<Duration> MAX_AGE = SystemProperty.Builder.ofType(Duration.class)
         .setKey("conversation.maxAge")
         .setDefaultValue(DEFAULT_MAX_AGE)
+        .setChronoUnit(ChronoUnit.DAYS)
         .setDynamic(true)
         .setPlugin("monitoring")
         .build();
 
-    public static SystemProperty<Integer> MAX_RETRIEVABLE = SystemProperty.Builder.ofType(Integer.class)
+    public static SystemProperty<Duration> MAX_RETRIEVABLE = SystemProperty.Builder.ofType(Duration.class)
         .setKey("conversation.maxRetrievable")
         .setDefaultValue(DEFAULT_MAX_RETRIEVABLE)
+        .setChronoUnit(ChronoUnit.DAYS)
         .setDynamic(true)
         .setPlugin("monitoring")
         .build();
@@ -213,11 +217,11 @@ public class ConversationManager implements ComponentEventListener{
             Log.warn("Metadata archiving must be enabled when room archiving is enabled. Overriding setting.");
             metadataArchivingEnabled = true;
         }
-        idleTime = IDLE_TIME.getValue() * JiveConstants.MINUTE;
-        maxTime = MAX_TIME.getValue() * JiveConstants.MINUTE;
+        idleTime = IDLE_TIME.getValue();
+        maxTime = MAX_TIME.getValue();
 
-        maxAge = MAX_AGE.getValue() * JiveConstants.DAY;
-        maxRetrievable = MAX_RETRIEVABLE.getValue() * JiveConstants.DAY;
+        maxAge = MAX_AGE.getValue();
+        maxRetrievable = MAX_RETRIEVABLE.getValue();
 
         // Listen for any changes to the conversation properties.
         propertyListener = new ConversationPropertyListener();
@@ -244,7 +248,7 @@ public class ConversationManager implements ComponentEventListener{
                 for (String key : conversations.keySet()) {
                     Conversation conversation = conversations.get(key);
                     long now = System.currentTimeMillis();
-                    if ((now - conversation.getLastActivity().getTime() > idleTime) || (now - conversation.getStartDate().getTime() > maxTime)) {
+                    if ((now - conversation.getLastActivity().getTime() > idleTime.toMillis()) || (now - conversation.getStartDate().getTime() > maxTime.toMillis())) {
                         removeConversation(key, conversation, new Date(now));
                     }
                 }
@@ -256,7 +260,7 @@ public class ConversationManager implements ComponentEventListener{
         maxAgeTask = new TimerTask() {
             @Override
             public void run() {
-                if (maxAge > 0) {
+                if (maxAge.toDays() > 0) {
                     // Delete conversations older than maxAge days
                     Connection con = null;
                     PreparedStatement pstmt1 = null;
@@ -268,7 +272,7 @@ public class ConversationManager implements ComponentEventListener{
                         pstmt2 = con.prepareStatement(DELETE_CONVERSATION_2);
                         pstmt3 = con.prepareStatement(DELETE_CONVERSATION_3);
                         Date now = new Date();
-                        Date maxAgeDate = new Date(now.getTime() - maxAge);
+                        Date maxAgeDate = new Date(now.getTime() - maxAge.toMillis());
                         ArchiveSearch search = new ArchiveSearch();
                         search.setDateRangeMax(maxAgeDate);
                         MonitoringPlugin plugin = (MonitoringPlugin) XMPPServer.getInstance().getPluginManager().getPlugin(MonitoringConstants.NAME);
@@ -478,8 +482,8 @@ public class ConversationManager implements ComponentEventListener{
      *
      * @return the conversation idle time.
      */
-    public int getIdleTime() {
-        return (int) (idleTime / JiveConstants.MINUTE);
+    public Duration getIdleTime() {
+        return idleTime;
     }
 
     /**
@@ -490,12 +494,12 @@ public class ConversationManager implements ComponentEventListener{
      * @throws IllegalArgumentException
      *             if idleTime is less than 1.
      */
-    public void setIdleTime(int idleTime) {
-        if (idleTime < 1) {
+    public void setIdleTime(Duration idleTime) {
+        if (idleTime.toMinutes() < 1) {
             throw new IllegalArgumentException("Idle time less than 1 is not valid: " + idleTime);
         }
         IDLE_TIME.setValue(idleTime);
-        this.idleTime = idleTime * JiveConstants.MINUTE;
+        this.idleTime = idleTime;
     }
 
     /**
@@ -504,8 +508,8 @@ public class ConversationManager implements ComponentEventListener{
      *
      * @return the maximum number of minutes a conversation can last.
      */
-    public int getMaxTime() {
-        return (int) (maxTime / JiveConstants.MINUTE);
+    public Duration getMaxTime() {
+        return maxTime;
     }
 
     /**
@@ -517,36 +521,36 @@ public class ConversationManager implements ComponentEventListener{
      * @throws IllegalArgumentException
      *             if maxTime is less than 1.
      */
-    public void setMaxTime(int maxTime) {
-        if (maxTime < 1) {
+    public void setMaxTime(Duration maxTime) {
+        if (maxTime.toMinutes() < 1) {
             throw new IllegalArgumentException("Max time less than 1 is not valid: " + maxTime);
         }
         MAX_TIME.setValue(maxTime);
-        this.maxTime = maxTime * JiveConstants.MINUTE;
+        this.maxTime = maxTime;
     }
 
-    public int getMaxAge() {
-        return (int) (maxAge / JiveConstants.DAY);
+    public Duration getMaxAge() {
+        return maxAge;
     }
 
-    public void setMaxAge(int maxAge) {
-        if (maxAge < 0) {
+    public void setMaxAge(Duration maxAge) {
+        if (maxAge.toDays() < 0) {
             throw new IllegalArgumentException("Max age less than 0 is not valid: " + maxAge);
         }
         MAX_AGE.setValue(maxAge);
-        this.maxAge = maxAge * JiveConstants.DAY;
+        this.maxAge = maxAge;
     }
 
-    public int getMaxRetrievable() {
-        return (int) (maxRetrievable / JiveConstants.DAY);
+    public Duration getMaxRetrievable() {
+        return maxRetrievable;
     }
 
-    public void setMaxRetrievable(int maxRetrievable) {
-        if (maxRetrievable < 0) {
+    public void setMaxRetrievable(Duration maxRetrievable) {
+        if (maxRetrievable.toDays() < 0) {
             throw new IllegalArgumentException("Max retrievable less than 0 is not valid: " + maxRetrievable);
         }
         MAX_RETRIEVABLE.setValue(maxRetrievable);
-        this.maxRetrievable = maxRetrievable * JiveConstants.DAY;
+        this.maxRetrievable = maxRetrievable;
     }
 
     public ConversationEventsQueue getConversationEventsQueue() {
@@ -729,8 +733,8 @@ public class ConversationManager implements ComponentEventListener{
             }
             // Check to see if the current conversation exceeds either the max idle time
             // or max conversation time.
-            else if ((date.getTime() - conversation.getLastActivity().getTime() > idleTime)
-                    || (date.getTime() - conversation.getStartDate().getTime() > maxTime)) {
+            else if ((date.getTime() - conversation.getLastActivity().getTime() > idleTime.toMillis())
+                    || (date.getTime() - conversation.getStartDate().getTime() > maxTime.toMillis())) {
                 removeConversation(conversationKey, conversation, conversation.getLastActivity());
 
                 Collection<JID> participants = new ArrayList<JID>(2);
@@ -803,8 +807,8 @@ public class ConversationManager implements ComponentEventListener{
             }
             // Check to see if the current conversation exceeds either the max idle time
             // or max conversation time.
-            else if ((date.getTime() - conversation.getLastActivity().getTime() > idleTime)
-                    || (date.getTime() - conversation.getStartDate().getTime() > maxTime)) {
+            else if ((date.getTime() - conversation.getLastActivity().getTime() > idleTime.toMillis())
+                    || (date.getTime() - conversation.getStartDate().getTime() > maxTime.toMillis())) {
                 removeConversation(conversationKey, conversation, conversation.getLastActivity());
                 // Make sure that the user joined the conversation before a message was received
                 Date start = new Date(date.getTime() - 1);
@@ -1155,16 +1159,18 @@ public class ConversationManager implements ComponentEventListener{
             .setPlugin("monitoring")
             .build();
 
-        public static SystemProperty<Long> CONVERSATION_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Long.class)
+        public static SystemProperty<Duration> CONVERSATION_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Duration.class)
             .setKey("conversation.archiver.conversation.max-purge-interval")
-            .setDefaultValue((long) 1000)
+            .setDefaultValue(Duration.ofMillis(1000))
+            .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
             .setPlugin("monitoring")
             .build();
 
-        public static SystemProperty<Long> CONVERSATION_GRACE_PERIOD = SystemProperty.Builder.ofType(Long.class)
+        public static SystemProperty<Duration> CONVERSATION_GRACE_PERIOD = SystemProperty.Builder.ofType(Duration.class)
             .setKey("conversation.archiver.conversation.grace-period")
-            .setDefaultValue((long) 50)
+            .setDefaultValue(Duration.ofMillis(50))
+            .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
             .setPlugin("monitoring")
             .build();
@@ -1173,8 +1179,8 @@ public class ConversationManager implements ComponentEventListener{
         {
             super( id,
                 CONVERSATION_MAX_WORK_QUEUE_SIZE.getValue(),
-                Duration.ofMillis( CONVERSATION_MAX_PURGE_INTERVAL.getValue() ),
-                Duration.ofMillis( CONVERSATION_GRACE_PERIOD.getValue() )
+                CONVERSATION_MAX_PURGE_INTERVAL.getValue(),
+                CONVERSATION_GRACE_PERIOD.getValue()
             );
         }
 
@@ -1236,16 +1242,18 @@ public class ConversationManager implements ComponentEventListener{
             .setPlugin("monitoring")
             .build();
 
-        public static SystemProperty<Long> MESSAGE_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Long.class)
+        public static SystemProperty<Duration> MESSAGE_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Duration.class)
             .setKey("conversation.archiver.message.max-purge-interval")
-            .setDefaultValue((long) 1000)
+            .setDefaultValue(Duration.ofMillis(1000))
+            .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
             .setPlugin("monitoring")
             .build();
 
-        public static SystemProperty<Long> MESSAGE_GRACE_PERIOD = SystemProperty.Builder.ofType(Long.class)
+        public static SystemProperty<Duration> MESSAGE_GRACE_PERIOD = SystemProperty.Builder.ofType(Duration.class)
             .setKey("conversation.archiver.message.grace-period")
-            .setDefaultValue((long) 50)
+            .setDefaultValue(Duration.ofMillis(50))
+            .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
             .setPlugin("monitoring")
             .build();
@@ -1254,8 +1262,8 @@ public class ConversationManager implements ComponentEventListener{
         {
             super( id,
                 MESSAGE_MAX_WORK_QUEUE_SIZE.getValue(),
-                Duration.ofMillis( MESSAGE_MAX_PURGE_INTERVAL.getValue() ),
-                Duration.ofMillis( MESSAGE_GRACE_PERIOD.getValue() )
+                MESSAGE_MAX_PURGE_INTERVAL.getValue(),
+                MESSAGE_GRACE_PERIOD.getValue()
             );
         }
 
@@ -1326,16 +1334,18 @@ public class ConversationManager implements ComponentEventListener{
             .setPlugin("monitoring")
             .build();
 
-        public static SystemProperty<Long> PARTICIPANT_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Long.class)
+        public static SystemProperty<Duration> PARTICIPANT_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Duration.class)
             .setKey("conversation.archiver.participant.max-purge-interval")
-            .setDefaultValue((long) 1000)
+            .setDefaultValue(Duration.ofMillis(1000))
+            .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
             .setPlugin("monitoring")
             .build();
 
-        public static SystemProperty<Long> PARTICIPANT_GRACE_PERIOD = SystemProperty.Builder.ofType(Long.class)
+        public static SystemProperty<Duration> PARTICIPANT_GRACE_PERIOD = SystemProperty.Builder.ofType(Duration.class)
             .setKey("conversation.archiver.participant.grace-period")
-            .setDefaultValue((long) 50)
+            .setDefaultValue(Duration.ofMillis(50))
+            .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
             .setPlugin("monitoring")
             .build();
@@ -1344,8 +1354,8 @@ public class ConversationManager implements ComponentEventListener{
         {
             super( id,
                 PARTICIPANT_MAX_WORK_QUEUE_SIZE.getValue(),
-                Duration.ofMillis( PARTICIPANT_MAX_PURGE_INTERVAL.getValue() ),
-                Duration.ofMillis( PARTICIPANT_GRACE_PERIOD.getValue() )
+                PARTICIPANT_MAX_PURGE_INTERVAL.getValue(),
+                PARTICIPANT_GRACE_PERIOD.getValue()
             );
         }
 
@@ -1427,46 +1437,46 @@ public class ConversationManager implements ComponentEventListener{
                 String value = (String) params.get("value");
                 roomsArchived = StringUtils.stringToCollection(value);
             } else if (property.equals("conversation.idleTime")) {
-                String value = (String) params.get("value");
+                Duration value = Duration.ofMinutes(Long.parseLong((String) params.get("value")));
                 try {
-                    idleTime = Integer.parseInt(value) * JiveConstants.MINUTE;
+                    idleTime = value;
                 } catch (Exception e) {
                     Log.error(e.getMessage(), e);
-                    idleTime = DEFAULT_IDLE_TIME * JiveConstants.MINUTE;
+                    idleTime = DEFAULT_IDLE_TIME;
                 }
             } else if (property.equals("conversation.maxTime")) {
-                String value = (String) params.get("value");
+                Duration value = Duration.ofMinutes(Long.parseLong((String) params.get("value")));
                 try {
-                    maxTime = Integer.parseInt(value) * JiveConstants.MINUTE;
+                    maxTime = value;
                 } catch (Exception e) {
                     Log.error(e.getMessage(), e);
-                    maxTime = DEFAULT_MAX_TIME * JiveConstants.MINUTE;
+                    maxTime = DEFAULT_MAX_TIME;
                 }
             } else if (property.equals("conversation.maxRetrievable")) {
-                String value = (String) params.get("value");
+                Duration value = Duration.ofDays(Long.parseLong((String) params.get("value")));
                 try {
-                    maxRetrievable = Integer.parseInt(value) * JiveConstants.DAY;
+                    maxRetrievable = value;
                 } catch (Exception e) {
                     Log.error(e.getMessage(), e);
-                    maxRetrievable = DEFAULT_MAX_RETRIEVABLE * JiveConstants.DAY;
+                    maxRetrievable = DEFAULT_MAX_RETRIEVABLE;
                 }
             } else if (property.equals("conversation.maxAge")) {
-                String value = (String) params.get("value");
+                Duration value = Duration.ofDays(Long.parseLong((String) params.get("value")));
                 try {
-                    maxAge = Integer.parseInt(value) * JiveConstants.DAY;
+                    maxAge = value;
                 } catch (Exception e) {
                     Log.error(e.getMessage(), e);
-                    maxAge = DEFAULT_MAX_AGE * JiveConstants.DAY;
+                    maxAge = DEFAULT_MAX_AGE;
                 }
             } else if (property.equals("conversation.maxTimeDebug")) {
-                String value = (String) params.get("value");
+                Duration value = Duration.ofMinutes(Long.parseLong((String) params.get("value")));
                 try {
                     Log.info("Monitoring plugin max time overridden (as used by userCreation plugin)");
-                    maxTime = Integer.parseInt(value);
+                    maxTime = value;
                 } catch (Exception e) {
                     Log.error(e.getMessage(), e);
                     Log.info("Monitoring plugin max time reset back to " + DEFAULT_MAX_TIME + " minutes");
-                    maxTime = DEFAULT_MAX_TIME * JiveConstants.MINUTE;
+                    maxTime = DEFAULT_MAX_TIME;
                 }
             }
         }
@@ -1483,16 +1493,16 @@ public class ConversationManager implements ComponentEventListener{
             } else if (property.equals("conversation.roomsArchived")) {
                 roomsArchived = Collections.emptyList();
             } else if (property.equals("conversation.idleTime")) {
-                idleTime = DEFAULT_IDLE_TIME * JiveConstants.MINUTE;
+                idleTime = DEFAULT_IDLE_TIME;
             } else if (property.equals("conversation.maxTime")) {
-                maxTime = DEFAULT_MAX_TIME * JiveConstants.MINUTE;
+                maxTime = DEFAULT_MAX_TIME;
             } else if (property.equals("conversation.maxAge")) {
-                maxAge = DEFAULT_MAX_AGE * JiveConstants.DAY;
+                maxAge = DEFAULT_MAX_AGE;
             } else if (property.equals("conversation.maxRetrievable")) {
-                maxRetrievable = DEFAULT_MAX_RETRIEVABLE * JiveConstants.DAY;
+                maxRetrievable = DEFAULT_MAX_RETRIEVABLE;
             }  else if (property.equals("conversation.maxTimeDebug")) {
                 Log.info("Monitoring plugin max time reset back to " + DEFAULT_MAX_TIME + " minutes");
-                maxTime = DEFAULT_MAX_TIME * JiveConstants.MINUTE;
+                maxTime = DEFAULT_MAX_TIME;
             }
         }
 
