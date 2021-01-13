@@ -36,59 +36,8 @@ import org.jivesoftware.util.cache.CacheFactory;
  * @author Gaston Dombiak
  */
 public class ConversationEventsQueue {
-    private final ConversationManager conversationManager;
-    /**
-     * Chat events that are pending to be sent to the senior cluster member.
-     * Key: Conversation Key; Value: List of conversation events.
-     */
-    private final Map<String, List<ConversationEvent>> chatEvents = new HashMap<String, List<ConversationEvent>>();
-    /**
-     * Group chat events that are pending to be sent to the senior cluster member.
-     * Key: Conversation Key; Value: List of conversation events.
-     */
-    private final Map<String, List<ConversationEvent>> roomEvents = new HashMap<String, List<ConversationEvent>>();
 
     public ConversationEventsQueue(ConversationManager conversationManager, TaskEngine taskEngine) {
-        this.conversationManager = conversationManager;
-
-        // Schedule a task to do conversation archiving.
-        TimerTask sendTask = new TimerTask() {
-            @Override
-            public void run() {
-                // Move queued events to a temp place
-                List<ConversationEvent> eventsToSend = new ArrayList<>();
-                synchronized (chatEvents) {
-                    for (List<ConversationEvent> list : chatEvents.values()) {
-                        // Just send the first and last event if we are not archiving messages
-                        if (!ConversationEventsQueue.this.conversationManager.isMessageArchivingEnabled() &&
-                                list.size() > 2) {
-                            eventsToSend.add(list.get(0));
-                            eventsToSend.add(list.get(list.size() - 1));
-                        }
-                        else {
-                            // Send all events
-                            eventsToSend.addAll(list);
-                        }
-                    }
-                    // We can empty the queue now
-                    chatEvents.clear();
-                }
-                synchronized (roomEvents) {
-                    for (List<ConversationEvent> list : roomEvents.values()) {
-                        eventsToSend.addAll(list);
-                    }
-                    // We can empty the queue now
-                    roomEvents.clear();
-                }
-
-                // Send the queued events (from the temp place) to the senior cluster member
-                if (!eventsToSend.isEmpty()) {
-                    CacheFactory.doClusterTask(new SendConversationEventsTask(eventsToSend),
-                                               ClusterManager.getSeniorClusterMember().toByteArray());
-                }
-            }
-        };
-        taskEngine.scheduleAtFixedRate(sendTask, JiveConstants.SECOND * 3, JiveConstants.SECOND * 3);
     }
 
     /**
@@ -98,14 +47,10 @@ public class ConversationEventsQueue {
      * @param event conversation event.
      */
     public void addChatEvent(String conversationKey, ConversationEvent event) {
-        synchronized (chatEvents) {
-            List<ConversationEvent> events = chatEvents.get(conversationKey);
-            if (events == null) {
-                events = new ArrayList<ConversationEvent>();
-                chatEvents.put(conversationKey, events);
-            }
-            events.add(event);
-        }
+        List<ConversationEvent> events = new ArrayList<ConversationEvent>();
+        events.add(event);
+        CacheFactory.doClusterTask(new SendConversationEventsTask(events),
+            ClusterManager.getSeniorClusterMember().toByteArray());
     }
 
     /**
@@ -115,13 +60,10 @@ public class ConversationEventsQueue {
      * @param event conversation event.
      */
     public void addGroupChatEvent(String conversationKey, ConversationEvent event) {
-        synchronized (roomEvents) {
-            List<ConversationEvent> events = roomEvents.get(conversationKey);
-            if (events == null) {
-                events = new ArrayList<ConversationEvent>();
-                roomEvents.put(conversationKey, events);
-            }
-            events.add(event);
-        }
+
+        List<ConversationEvent> events = new ArrayList<ConversationEvent>();
+        events.add(event);
+        CacheFactory.doClusterTask(new SendConversationEventsTask(events),
+            ClusterManager.getSeniorClusterMember().toByteArray());
     }
 }

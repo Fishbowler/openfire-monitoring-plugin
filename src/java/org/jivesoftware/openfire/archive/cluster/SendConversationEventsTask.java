@@ -62,12 +62,16 @@ public class SendConversationEventsTask implements ClusterTask<Void> {
     }
 
     public void run() {
-        final Optional<Plugin> plugin = XMPPServer.getInstance().getPluginManager().getPluginByName(MonitoringConstants.PLUGIN_NAME);
-        if (!plugin.isPresent()) {
+        final Optional<Plugin> optPlugin = XMPPServer.getInstance().getPluginManager().getPluginByName(MonitoringConstants.PLUGIN_NAME);
+        if (!optPlugin.isPresent()) {
             Log.error("Unable to execute cluster task! The Monitoring plugin does not appear to be loaded on this machine.");
             return;
         }
-        final ConversationManager conversationManager = (ConversationManager) ((MonitoringPlugin)plugin.get()).getModule(ConversationManager.class);
+        Plugin plugin = optPlugin.get();
+        if(! (plugin instanceof MonitoringPlugin)) {
+            Thread.currentThread().setContextClassLoader(plugin.getClass().getClassLoader());
+        }
+        final ConversationManager conversationManager = ((MonitoringPlugin)plugin).getConversationManager();
         for (final ConversationEvent event : events) {
             try {
                 event.run(conversationManager);
