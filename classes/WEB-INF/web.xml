@@ -4,14 +4,5 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
          version="3.1">
 
-    <servlet>
-        <servlet-name>JerseyWrapper</servlet-name>
-        <servlet-class>org.jivesoftware.openfire.plugin.JerseyWrapperPublic</servlet-class>
-    </servlet>
 
-
-    <servlet-mapping>
-        <servlet-name>JerseyWrapper</servlet-name>
-        <url-pattern>/api/*</url-pattern>
-    </servlet-mapping>
 </web-app>

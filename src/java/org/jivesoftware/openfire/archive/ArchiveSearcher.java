@@ -59,9 +59,9 @@ public class ArchiveSearcher implements Startable {
      * @param conversationManager a ConversationManager instance.
      * @param archiveIndexer a ArchiveIndexer used to search through the search index.
      */
-    public ArchiveSearcher(ConversationManager conversationManager, ArchiveIndexer archiveIndexer) {
+    public ArchiveSearcher(ConversationManager conversationManager) {
         this.conversationManager = conversationManager;
-        this.archiveIndexer = archiveIndexer;
+        this.archiveIndexer = null;
     }
 
     public void start() {

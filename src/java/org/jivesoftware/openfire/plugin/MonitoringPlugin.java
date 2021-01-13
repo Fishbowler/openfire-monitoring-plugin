@@ -102,20 +102,20 @@ public class MonitoringPlugin implements Plugin {
         picoContainer.registerComponentInstance(JiveProperties.getInstance());
 
         // Stats and Graphing classes
-        picoContainer.registerComponentImplementation(StatsEngine.class);
-        picoContainer.registerComponentImplementation(GraphEngine.class);
-        picoContainer.registerComponentImplementation(StatisticsModule.class);
-        picoContainer.registerComponentImplementation(StatsViewer.class,
-                getStatsViewerImplementation());
+        //picoContainer.registerComponentImplementation(StatsEngine.class);
+        //picoContainer.registerComponentImplementation(GraphEngine.class);
+        //picoContainer.registerComponentImplementation(StatisticsModule.class);
+        //picoContainer.registerComponentImplementation(StatsViewer.class,
+                //getStatsViewerImplementation());
 
         // Archive classes
         picoContainer.registerComponentImplementation(ConversationManager.class);
         picoContainer.registerComponentImplementation(ArchiveInterceptor.class);
         picoContainer.registerComponentImplementation(GroupConversationInterceptor.class);
         picoContainer.registerComponentImplementation(ArchiveSearcher.class);
-        picoContainer.registerComponentImplementation(ArchiveIndexer.class);
-        picoContainer.registerComponentImplementation(MucIndexer.class);
-        picoContainer.registerComponentImplementation(MessageIndexer.class);
+        //picoContainer.registerComponentImplementation(ArchiveIndexer.class);
+        //picoContainer.registerComponentImplementation(MucIndexer.class);
+        //picoContainer.registerComponentImplementation(MessageIndexer.class);
     }
 
     private Class<? extends StatsViewer> getStatsViewerImplementation() {
@@ -200,7 +200,7 @@ public class MonitoringPlugin implements Plugin {
             dir.mkdirs();
         }
 
-        loadPublicWeb(pluginDirectory);
+        //loadPublicWeb(pluginDirectory);
 
         picoContainer.start();
     }
@@ -210,7 +210,7 @@ public class MonitoringPlugin implements Plugin {
         // Issue #114: Shut down the task-engine first, to prevent tasks from being executed in a shutting-down environment.
         TaskEngine.getInstance().dispose();
 
-        unloadPublicWeb();
+        //unloadPublicWeb();
 
         if (picoContainer != null) {
             picoContainer.stop();
