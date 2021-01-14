@@ -144,7 +144,7 @@ public abstract class LuceneIndexer
             }
         };
         final Duration updateInterval = UPDATE_INTERVAL.getValue();
-        taskEngine.schedule(indexUpdater, Duration.ofMinutes(1).toMinutes(), updateInterval.toMinutes());
+        taskEngine.schedule(indexUpdater, Duration.ofMinutes(1).toMillis(), updateInterval.toMillis());
     }
 
     protected synchronized Instant getLastModified()
