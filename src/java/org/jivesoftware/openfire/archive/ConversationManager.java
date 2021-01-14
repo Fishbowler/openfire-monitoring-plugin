@@ -133,35 +133,35 @@ public class ConversationManager implements ComponentEventListener{
         .setKey("conversation.metadataArchiving")
         .setDefaultValue(true)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<Boolean> MESSAGE_ARCHIVING_ENABLED = SystemProperty.Builder.ofType(Boolean.class)
         .setKey("conversation.messageArchiving")
         .setDefaultValue(false)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<Boolean> ROOM_ARCHIVING_ENABLED = SystemProperty.Builder.ofType(Boolean.class)
         .setKey("conversation.roomArchiving")
         .setDefaultValue(false)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<Boolean> ROOM_STANZA_ARCHIVING_ENABLED = SystemProperty.Builder.ofType(Boolean.class)
         .setKey("conversation.roomArchivingStanzas")
         .setDefaultValue(false)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<String> ROOMS_ARCHIVED = SystemProperty.Builder.ofType(String.class)
         .setKey("conversation.roomsArchived")
         .setDefaultValue("")
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<Duration> IDLE_TIME = SystemProperty.Builder.ofType(Duration.class)
@@ -169,7 +169,7 @@ public class ConversationManager implements ComponentEventListener{
         .setDefaultValue(DEFAULT_IDLE_TIME)
         .setChronoUnit(ChronoUnit.MINUTES)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<Duration> MAX_TIME = SystemProperty.Builder.ofType(Duration.class)
@@ -177,7 +177,7 @@ public class ConversationManager implements ComponentEventListener{
         .setDefaultValue(DEFAULT_MAX_TIME)
         .setChronoUnit(ChronoUnit.MINUTES)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
     
     public static SystemProperty<Duration> MAX_AGE = SystemProperty.Builder.ofType(Duration.class)
@@ -185,7 +185,7 @@ public class ConversationManager implements ComponentEventListener{
         .setDefaultValue(DEFAULT_MAX_AGE)
         .setChronoUnit(ChronoUnit.DAYS)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public static SystemProperty<Duration> MAX_RETRIEVABLE = SystemProperty.Builder.ofType(Duration.class)
@@ -193,7 +193,7 @@ public class ConversationManager implements ComponentEventListener{
         .setDefaultValue(DEFAULT_MAX_RETRIEVABLE)
         .setChronoUnit(ChronoUnit.DAYS)
         .setDynamic(true)
-        .setPlugin("monitoring")
+        .setPlugin(MonitoringConstants.PLUGIN_NAME)
         .build();
 
     public ConversationManager(TaskEngine taskEngine) {
@@ -1156,7 +1156,7 @@ public class ConversationManager implements ComponentEventListener{
             .setKey("conversation.archiver.conversation.max-work-queue-size")
             .setDefaultValue(500)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         public static SystemProperty<Duration> CONVERSATION_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Duration.class)
@@ -1164,7 +1164,7 @@ public class ConversationManager implements ComponentEventListener{
             .setDefaultValue(Duration.ofMillis(1000))
             .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         public static SystemProperty<Duration> CONVERSATION_GRACE_PERIOD = SystemProperty.Builder.ofType(Duration.class)
@@ -1172,7 +1172,7 @@ public class ConversationManager implements ComponentEventListener{
             .setDefaultValue(Duration.ofMillis(50))
             .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         ConversationArchivingRunnable( String id )
@@ -1239,7 +1239,7 @@ public class ConversationManager implements ComponentEventListener{
             .setKey("conversation.archiver.message.max-work-queue-size")
             .setDefaultValue(500)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         public static SystemProperty<Duration> MESSAGE_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Duration.class)
@@ -1247,7 +1247,7 @@ public class ConversationManager implements ComponentEventListener{
             .setDefaultValue(Duration.ofMillis(1000))
             .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         public static SystemProperty<Duration> MESSAGE_GRACE_PERIOD = SystemProperty.Builder.ofType(Duration.class)
@@ -1255,7 +1255,7 @@ public class ConversationManager implements ComponentEventListener{
             .setDefaultValue(Duration.ofMillis(50))
             .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
             
         MessageArchivingRunnable( String id )
@@ -1331,7 +1331,7 @@ public class ConversationManager implements ComponentEventListener{
             .setKey("conversation.archiver.participant.max-work-queue-size")
             .setDefaultValue(500)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         public static SystemProperty<Duration> PARTICIPANT_MAX_PURGE_INTERVAL = SystemProperty.Builder.ofType(Duration.class)
@@ -1339,7 +1339,7 @@ public class ConversationManager implements ComponentEventListener{
             .setDefaultValue(Duration.ofMillis(1000))
             .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
 
         public static SystemProperty<Duration> PARTICIPANT_GRACE_PERIOD = SystemProperty.Builder.ofType(Duration.class)
@@ -1347,7 +1347,7 @@ public class ConversationManager implements ComponentEventListener{
             .setDefaultValue(Duration.ofMillis(50))
             .setChronoUnit(ChronoUnit.MILLIS)
             .setDynamic(true)
-            .setPlugin("monitoring")
+            .setPlugin(MonitoringConstants.PLUGIN_NAME)
             .build();
             
         ParticipantArchivingRunnable( String id )
