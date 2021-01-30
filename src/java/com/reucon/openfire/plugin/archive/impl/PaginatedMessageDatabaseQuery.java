@@ -73,10 +73,12 @@ public class PaginatedMessageDatabaseQuery
      */
     public PaginatedMessageDatabaseQuery(@Nullable final Date startDate, @Nullable final Date endDate, @Nonnull final JID owner, @Nullable final JID with)
     {
+        Log.debug("Making a PaginatedMessageDatabaseQuery");
         this.startDate = startDate == null ? new Date( 0L ) : startDate ;
         this.endDate = endDate == null ? new Date() : endDate;
         this.owner = owner;
         this.with = with;
+        Log.debug("Made a PaginatedMessageDatabaseQuery");
     }
 
     @Nonnull

@@ -81,6 +81,7 @@ public class PaginatedMucMessageDatabaseQuery
      */
     public PaginatedMucMessageDatabaseQuery(@Nullable final Date startDate, @Nullable final Date endDate, @Nonnull final JID archiveOwner, @Nonnull final JID messageOwner, @Nullable final JID with)
     {
+        Log.debug("Creating a PaginatedMucMessageDatabaseQuery");
         this.startDate = startDate == null ? new Date( 0L ) : startDate ;
         this.endDate = endDate == null ? new Date() : endDate;
         this.archiveOwner = archiveOwner;
